@@ -1,0 +1,38 @@
+[
+  {
+    "role": "user",
+    "content": "hello"
+  },
+  {
+    "role": "user",
+    "content": "tôi muốn biết về frequent itemset trong data mining"
+  },
+  {
+    "role": "user",
+    "content": "chưa"
+  },
+  {
+    "role": "user",
+    "content": "Tôi chưa biết gì hết"
+  },
+  {
+    "role": "user",
+    "content": "Xin chào, tôi muốn học về xác suất thống kê, hãy cho tôi biết một số khái niệm cơ bản"
+  },
+  {
+    "role": "user",
+    "content": "Xin chào, tôi muốn học về xác suất thống kê, hãy cho tôi biết một số khái niệm cơ bản"
+  },
+  {
+    "role": "user",
+    "content": "Xin chào, tôi muốn học cách giải một khối rubik, hãy cho tôi biết một số khái niệm cơ bản"
+  },
+  {
+    "role": "user",
+    "content": "3"
+  },
+  {
+    "role": "user",
+    "content": "giải khối rubik"
+  }
+]

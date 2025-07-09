@@ -1,2 +1,8 @@
 streamlit
 openai
+PyPDF2
+os
+dotenv
+json
+uuid
+serapi
