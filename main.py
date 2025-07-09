@@ -1,6 +1,6 @@
 import os
 import json
-from fastapi import FastAPI, HTTPException, Form, File
+from fastapi import FastAPI, HTTPException, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import google.genai as genai
