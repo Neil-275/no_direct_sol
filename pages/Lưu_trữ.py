@@ -60,14 +60,15 @@ if uploaded_pdfs:
     except Exception as e:
         st.sidebar.error(f"Lỗi đọc PDF: {e}")
 
-# Sidebar: Quản lý phiên chat
-st.sidebar.title("Lịch sử phiên chat")
-sessions = load_sessions()
-if "current_session_id" not in st.session_state:
-    if sessions:
-        st.session_state["current_session_id"] = sessions[-1]["id"]
-    else:
-        st.session_state["current_session_id"] = None
+def format_timestamp(timestamp=None):
+    """Format timestamp for display"""
+    if timestamp is None:
+        timestamp = datetime.now().isoformat()
+    try:
+        dt = datetime.fromisoformat(timestamp)
+        return dt.strftime("%d/%m %H:%M")
+    except:
+        return datetime.now().strftime("%d/%m %H:%M")
 
 # Nút Chat mới với xác nhận
 if st.sidebar.button("Chat mới"):
