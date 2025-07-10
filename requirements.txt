@@ -6,3 +6,6 @@ dotenv
 json
 uuid
 serapi
+langgraph
+langchain_openai
+fitz

@@ -9,6 +9,14 @@ from PIL import Image
 import io
 import hashlib
 import uuid
+from utils.authentification import require_login, show_user_info, get_current_user
+
+# ===== KIỂM TRA ĐĂNG NHẬP =====
+if not require_login("TutorBot - AI Tutor Assistant"):
+    exit()
+
+# Hiển thị thông tin user trong sidebar
+show_user_info()
 
 # Configuration
 UPLOAD_DIR = "archives/uploads"

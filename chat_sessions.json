@@ -1,29 +1,5 @@
 [
   {
-    "id": "bd590765-fc47-48b5-8c89-57146f03d863",
-    "name": "Tìm cho tôi một số tài liệu về...",
-    "messages": [
-      {
-        "role": "assistant",
-        "content": "Chào bạn, tôi là gia sư toán, có bằng tốt nghiệp xuất sắc sư phạm toán. Tôi có thể giúp gì được cho bạn"
-      },
-      {
-        "role": "user",
-        "content": "Tìm cho tôi một số tài liệu về AI"
-      },
-      {
-        "role": "assistant",
-        "content": "Đây là một số tài liệu đáng tin cậy mà tôi tìm được \n\n\n- **TRÍ TUỆ NHÂN TẠO (A.I) DÀNH CHO MỌI NGƯỜI**\nBài giảng biên soạn theo giáo trình “A.I for everyone” của Nhà khoa học A.I Ông Andrew Ng. (Google Brain - Baidu AI - Deeplearning.ai - Đại học Stanford).\nhttps://dost.hochiminhcity.gov.vn/documents/1165/Ai_for_Student_Phien_ban_Tieng_Viet_SIHUB.pdf\n\n- **Giáo trình TRÍ TUỆ NHÂN TẠO ARTIFICIAL INTELLIGENCE**\nGiới thiệu: trình bày tổng quan về AI, lịch sử ra đời và phát triển và các lính vực ứng dụng của AI. Chương 2. Các phương pháp tìm kiếm lời giải: trình bày các ...\nhttps://novaspro.vn/upload/files/tailieu/GT-tri-tue-nhan-tao-1.pdf\n\n- **Tài Liệu Học AI – Trí Tuệ Nhân Tạo Ứng Dụng Vào Công ...**\n1. Soạn thảo văn bản một cách thông minh · 2. Phân tích và quản lý dữ liệu hiệu quả · 3. Quản lý công việc thông minh · 4. Thuyết trình ấn tượng với PowerPoint AI.\nhttps://blogdaytinhoc.com/tai-lieu-hoc-ai-tri-tue-nhan-tao-ung-dung-vao-cong-viec-1227"
-      }
-    ],
-    "problem": "",
-    "ground_truth": "",
-    "student_solution": "",
-    "student_get_it_right": "",
-    "created_at": "2025-07-10T19:04:02.486198",
-    "updated_at": "2025-07-10T19:04:08.723175"
-  },
-  {
     "id": "22cef2fe-b7f4-400c-8552-a7ba6802a1a0",
     "name": "Tìm cho tôi một số tài liệu về...",
     "messages": [
@@ -38,6 +14,18 @@
       {
         "role": "assistant",
         "content": "Bạn đang tìm tài liệu về AI (Trí tuệ nhân tạo) để học tập hay nghiên cứu? Bạn có thể cho tôi biết thêm về mục đích cụ thể của bạn không? Ví dụ: bạn muốn tìm hiểu về lý thuyết, ứng dụng, hay các công nghệ cụ thể trong AI?"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
       }
     ],
     "problem": "",
@@ -45,7 +33,7 @@
     "student_solution": "",
     "student_get_it_right": "",
     "created_at": "2025-07-10T18:58:31.290963",
-    "updated_at": "2025-07-10T18:59:26.214405"
+    "updated_at": "2025-07-10T21:13:03.328585"
   },
   {
     "id": "f018dcaa-9e70-48c4-92d5-0c34c62e8604",
@@ -118,6 +106,50 @@
       {
         "role": "assistant",
         "content": "Chào bạn! Bạn cần giúp gì hôm nay?"
+      },
+      {
+        "role": "user",
+        "content": "Chào, tôi là học sinh học sinh học, cho tao biết về mất cân bằng nội tiết tố ở nữ"
+      },
+      {
+        "role": "assistant",
+        "content": "Đây là một số tài liệu đáng tin cậy mà tôi tìm được \n\n\n- **Mất cân bằng nội tiết tố: Nguyên nhân, triệu chứng và chẩn ...**\nNguyên nhân gây mất cân bằng nội tiết tố ở phụ nữ · Chế độ ăn uống không lành mạnh. · Căng thẳng nhiều gây stress. · Cơ thể tích tụ nhiều mỡ.\nhttps://tamanhhospital.vn/mat-can-bang-noi-tiet-to/\n\n- **Mất cân bằng nội tiết tố ở phụ nữ: triệu chứng, xét nghiệm ...**\nMất cân bằng nội tiết tố nữ là tình trạng cơ thể có quá nhiều hay quá ít một hay nhiều loại hóc môn. Mất cân bằng nội tiết ở nữ giới ảnh hưởng đến mọi mặt ...\nhttps://www.vinmec.com/vie/bai-viet/mat-can-bang-noi-tiet-o-phu-nu-trieu-chung-xet-nghiem-dieu-tri-vi\n\n- **12 dấu hiệu mất cân bằng nội tiết tố**\n12 dấu hiệu mất cân bằng nội tiết tố · 3.1 Chu kỳ kinh nguyệt không đều · 3.2 Rối loạn giấc ngủ · 3.3 Mụn trứng cá mãn tính · 3.4 Suy nghĩ không rõ ràng · 3.5 Vấn đề ...\nhttps://www.vinmec.com/vie/bai-viet/12-dau-hieu-mat-can-bang-noi-tiet-vi"
+      },
+      {
+        "role": "user",
+        "content": "Giải bài toán: 1+1=?"
+      },
+      {
+        "role": "user",
+        "content": "Giải bài toán: hai con vịt đi trước hai con vịt, hai con vịt đi giữa hai con vịt, hai con vịt đi sau hai con vịt"
+      },
+      {
+        "role": "user",
+        "content": "Tôi cần biết về đạo hàm"
+      },
+      {
+        "role": "assistant",
+        "content": "Đây là một số tài liệu đáng tin cậy mà tôi tìm được \n\n\n- **Đạo hàm là gì? Khái niệm và các công thức cơ bản đến ...**\nCòn trong Vật Lý thì đạo hàm chính là vận tốc tức thời, vận tốc tại thời điểm tính của một vật đang trong quá trình chuyển động hay có thể nói ...\nhttps://vuihoc.vn/tin/thpt-dao-ham-2032.html\n\n- **Công thức Đạo hàm sơ cấp, cấp cao và Đạo hàm lượng ...**\n++ Tính được đạo hàm của một số hàm số sơ cấp cơ bản (như hàm đa thức, hàm căn thức đơn giản, hàm số lượng giác, hàm số mũ, hàm số lôgarit).\nhttps://thuvienphapluat.vn/phap-luat/cong-thuc-dao-ham-so-cap-cap-cao-va-dao-ham-luong-giac-day-du-nhat-lop-11-12-nhu-the-nao-341831-174793.html\n\n- **Đạo hàm – Wikipedia tiếng Việt**\nTrong toán học, đạo hàm của một hàm số là một đại lượng mô tả sự biến thiên của hàm tại một điểm nào đó. Đạo hàm là một khái niệm cơ bản trong giải tích.\nhttps://vi.wikipedia.org/wiki/%C4%90%E1%BA%A1o_h%C3%A0m"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
+      },
+      {
+        "role": "user",
+        "content": "Hãy giúp tôi giải bài toán sau: Một kho lạnh đang ở nhiệt độ 5 oC, một công nhân cần đặt chế độ làm cho nhiệt độ của kho trung bình cứ mỗi phút giảm đi 2 oC. Hỏi sau 4 phút nữa nhiệt độ trong kho là bao nhiêu?"
       }
     ],
     "problem": "",
@@ -125,6 +157,30 @@
     "student_solution": "",
     "student_get_it_right": "",
     "created_at": "2025-07-10T17:54:21.981121",
-    "updated_at": "2025-07-10T18:04:13.304411"
+    "updated_at": "2025-07-10T21:08:54.130064"
+  },
+  {
+    "id": "bd590765-fc47-48b5-8c89-57146f03d863",
+    "name": "Tìm cho tôi một số tài liệu về...",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Chào bạn, tôi là gia sư toán, có bằng tốt nghiệp xuất sắc sư phạm toán. Tôi có thể giúp gì được cho bạn"
+      },
+      {
+        "role": "user",
+        "content": "Tìm cho tôi một số tài liệu về AI"
+      },
+      {
+        "role": "assistant",
+        "content": "Đây là một số tài liệu đáng tin cậy mà tôi tìm được \n\n\n- **TRÍ TUỆ NHÂN TẠO (A.I) DÀNH CHO MỌI NGƯỜI**\nBài giảng biên soạn theo giáo trình “A.I for everyone” của Nhà khoa học A.I Ông Andrew Ng. (Google Brain - Baidu AI - Deeplearning.ai - Đại học Stanford).\nhttps://dost.hochiminhcity.gov.vn/documents/1165/Ai_for_Student_Phien_ban_Tieng_Viet_SIHUB.pdf\n\n- **Giáo trình TRÍ TUỆ NHÂN TẠO ARTIFICIAL INTELLIGENCE**\nGiới thiệu: trình bày tổng quan về AI, lịch sử ra đời và phát triển và các lính vực ứng dụng của AI. Chương 2. Các phương pháp tìm kiếm lời giải: trình bày các ...\nhttps://novaspro.vn/upload/files/tailieu/GT-tri-tue-nhan-tao-1.pdf\n\n- **Tài Liệu Học AI – Trí Tuệ Nhân Tạo Ứng Dụng Vào Công ...**\n1. Soạn thảo văn bản một cách thông minh · 2. Phân tích và quản lý dữ liệu hiệu quả · 3. Quản lý công việc thông minh · 4. Thuyết trình ấn tượng với PowerPoint AI.\nhttps://blogdaytinhoc.com/tai-lieu-hoc-ai-tri-tue-nhan-tao-ung-dung-vao-cong-viec-1227"
+      }
+    ],
+    "problem": "",
+    "ground_truth": "",
+    "student_solution": "",
+    "student_get_it_right": "",
+    "created_at": "2025-07-10T19:04:02.486198",
+    "updated_at": "2025-07-10T19:04:08.723175"
   }
 ]
