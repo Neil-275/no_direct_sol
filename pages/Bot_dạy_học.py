@@ -41,8 +41,7 @@ agent = get_agent()
 SESSION_FILE = "chat_sessions.json"
 
 def handle_normal_chat(prompt, sessions, agent, Tutor_prompt):
-    """Xử lý chat bình thường (không RAG)"""
-    # Hiển thị tin nhắn người dùng
+   
     with st.chat_message("user"):
         st.markdown(prompt)
 
