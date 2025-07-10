@@ -1,11 +1,12 @@
 from serpapi import GoogleSearch
+import os
 
-def serpapi_search(query, api_key):
+def serpapi_search(query):
     try:
         params = {
             "engine": "google",
             "q": query,
-            "api_key": api_key,
+            "api_key": os.getenv('SERPAPI_KEY'),
             "num": 3,
             "hl": "vi"
         }
@@ -14,7 +15,7 @@ def serpapi_search(query, api_key):
         organic = results.get("organic_results", [])
         if not organic:
             return "Không tìm thấy kết quả web search."
-        output = []
+        output = ["Đây là một số tài liệu đáng tin cậy mà tôi tìm được \n"]
         for item in organic:
             title = item.get("title", "")
             link = item.get("link", "")

@@ -72,6 +72,7 @@ def Classify_prompt(prob, sol, ground_truth, inputt):
          * problem: Vấn đề toán học – mô tả của một bài tập toán.
          * student_solution: Câu trả lời của học sinh – mô tả lời giải bài toán của học sinh
          * student_get_it_right: Một câu cảm thán nhận ra lỗi sai trong lời giải của mình và cảm ơn giáo viên.
+         * web_query: Một câu hỏi về thông tin về kiến thức gì đó cần phải tra trên mạng.
          - Nếu thành phần bị thiếu thì gán nó là "".
          - Chỉ trả về kết quả dưới dạng **JSON thuần** (không thêm ``` hoặc python). 
          - Không giải thích gì thêm. Không thêm bất kỳ chữ nào ngoài JSON.
@@ -83,7 +84,8 @@ def Classify_prompt(prob, sol, ground_truth, inputt):
       {{
       "problem": "Tìm x biết 2x + 3 = 7",
       "student_solution": "Em nghĩ x = (7+3)/2 nên x = 5",
-      "student_get_it_right": "À chết rồi, cảm ơn thầy ạ"
+      "student_get_it_right": "À chết rồi, cảm ơn thầy ạ",
+      "web_query":  ""
       }}
 
       Ví dụ 2:
@@ -93,7 +95,8 @@ def Classify_prompt(prob, sol, ground_truth, inputt):
       {{
       "problem": "tìm diện tích hình tròn có bán kính 5cm",
       "student_solution": "Tôi tính như sau: 2* pi * 5 = 10 pi (cm^2)",
-      "student_get_it_right": ""
+      "student_get_it_right": "",
+      "web_query":  ""
       }}
 
       Ví dụ 3:
@@ -103,7 +106,8 @@ def Classify_prompt(prob, sol, ground_truth, inputt):
       {{
       "problem": "",
       "student_solution": "",
-      "student_get_it_right": ""
+      "student_get_it_right": "",
+      "web_query":  ""
       }}
 
       Ví dụ 4:
@@ -113,8 +117,32 @@ def Classify_prompt(prob, sol, ground_truth, inputt):
       {{
       "problem": "",
       "student_solution": "",
-      "student_get_it_right": "À chết rồi, tôi đã thấy lỗi sai đó. Cảm ơn nhe"
+      "student_get_it_right": "À chết rồi, tôi đã thấy lỗi sai đó. Cảm ơn nhe",
+      "web_query":  ""
       }}
+
+      Ví dụ 5: 
+      Input: "Tôi không nhớ cách giải phương trình bậc 2, bạn hãy tìm cho tôi một số tài liệu không"
+
+      Output:
+      {{
+      "problem": "",
+      "student_solution": "",
+      "student_get_it_right": "",
+      "web_query":  "Cách giải phương trình bậc 2"
+      }}
+   
+      Ví dụ 5: 
+      Input: "Tìm cho tôi một số tài liệu về bài tập ôn phép tính lũy thừa"
+
+      Output:
+      {{
+      "problem": "",
+      "student_solution": "",
+      "student_get_it_right": "",
+      "web_query":  "bài tập ôn phép tính lũy thừa"
+      }}
+   
       """
 
 

@@ -8,7 +8,11 @@ load_dotenv()
 
 client = None
 
-st.set_page_config(page_title="My Multipage App")
+st.set_page_config(
+    page_title="Bot dạy học",
+    layout= "wide",
+    initial_sidebar_state="expanded"
+)
 st.title("🏠 Trang chủ")
 
 # print(os.getcwd())
