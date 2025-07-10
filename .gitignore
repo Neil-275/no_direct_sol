@@ -1,3 +1,5 @@
 test_math_solver.ipynb
 test_math_tutor.ipynb
 .env
+prompts/__pycache__/
+chat_history.json
