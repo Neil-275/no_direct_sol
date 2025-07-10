@@ -1,8 +1,11 @@
 streamlit
 openai
 PyPDF2
-os
 dotenv
-json
 uuid
-serapi
+serpapi
+langchain
+langchain-community
+faiss-cpu
+gpt4all
+pypdf
