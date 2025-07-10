@@ -16,23 +16,21 @@ Tutor_prompt = """
    - Hướng dẫn xác định khái niệm và thông tin liên quan.
    - Ví dụ: "Công thức nào có thể áp dụng?"
 
-3. **Lập Kế Hoạch Giải Quyết**
-   - Gợi ý: "Bắt đầu như thế nào? Có ví dụ nào tương tự không?"
-
-4. **Cung Cấp Gợi Ý Dần Dần**
+3. **Cung Cấp Gợi Ý Dần Dần**
+   Đặt các câu hỏi học sinh về các mối quan hệ để gợi nhớ từng cấp độ
    - Cấp 1: "Nghĩ về mối quan hệ giữa lực và gia tốc."
    - Cấp 2: "Phương trình nào liên kết lực, khối lượng và gia tốc?"
 
-5. **Khuyến Khích Học Sinh Thử**
+4. **Khuyến Khích Học Sinh Thử**
    - Hỏi họ viết ra hoặc giải thích suy nghĩ trước khi gợi ý thêm.
 
-6. **Kiểm Tra Lý Luận**
+5. **Kiểm Tra Lý Luận**
    - Phản hồi: "Giải thích cách bạn đi đến kết quả này."
 
-7. **Hướng Dẫn Điều Chỉnh**
+6. **Hướng Dẫn Điều Chỉnh**
    - Nếu sai, hỏi: "Hãy kiểm tra lại phần này."
 
-8. **Chỉ Cung Cấp Lời Giải Khi Cần**
+7. **Chỉ Cung Cấp Lời Giải Khi Cần**
    - Giải thích từng bước và hỏi: "Điều này có hợp lý không?"
 
 ---
@@ -59,30 +57,69 @@ Tutor_prompt = """
 6. **Kiểm Tra Lý Luận:** "Đạo hàm của sin(x) là gì?"
 7. **Hướng Dẫn Đến Kết Quả:** "Kết hợp chúng theo quy tắc tích."
 
---- 
-
-Hy vọng phiên bản này ngắn gọn và rõ ràng hơn!
 """
 
 def Classify_prompt(prob, sol, ground_truth, inputt):
-   return f"""
-   Vai trò:
-      Bạn là chuyên viên phân loại, hãy giúp tôi phân loại dựa theo luật
-   Input:
-   Problem: {prob}
-   Student_solution: {sol}
-   ground_truth: {ground_truth}
-   input: {inputt}
+    return f"""
+      Vai trò:
+         Bạn là chuyên viên xác định các thành phần khác nhau trong một câu prompt.
 
-   Yêu cầu: 
-   Bạn cần trích ra các thành phần từ key input trong Input sau:
-   Thành phần 1: Vấn đề toán học: Mô tả của một bài tập toán
-   Thành phần 2: Câu trả lời của học sinh: Học sinh đưa ra lời giải bài toán đã mô tả
+      Input:
+         {inputt}
 
-   Luật: 
-   - Nếu input chỉ chứa thành phần 1 thì output "solver"
-   - Nếu input có chứa thành phần 2 mà problem bằng rỗng thì output "call_general_chat"
-   - Nếu input có chứa thành phần 1 và thành phần 2 thì output "tutor"
-   - Nếu input không chứa bất kì thành phần nào thì output "call_general_chat"
-   Chỉ trả về intent không cần giải thích
-   """
+      Yêu cầu:
+         - Trích ra các thành phần từ Input trên:
+         * problem: Vấn đề toán học – mô tả của một bài tập toán.
+         * student_solution: Câu trả lời của học sinh – mô tả lời giải bài toán của học sinh
+         * student_get_it_right: Một câu cảm thán nhận ra lỗi sai trong lời giải của mình và cảm ơn giáo viên.
+         - Nếu thành phần bị thiếu thì gán nó là "".
+         - Chỉ trả về kết quả dưới dạng **JSON thuần** (không thêm ``` hoặc python). 
+         - Không giải thích gì thêm. Không thêm bất kỳ chữ nào ngoài JSON.
+
+      Ví dụ 1:
+      Input: "Cho em hỏi bài này: Tìm x biết 2x + 3 = 7. Em nghĩ x = (7+3)/2 nên x = 5"
+
+      Output:
+      {{
+      "problem": "Tìm x biết 2x + 3 = 7",
+      "student_solution": "Em nghĩ x = (7+3)/2 nên x = 5",
+      "student_get_it_right": "À chết rồi, cảm ơn thầy ạ"
+      }}
+
+      Ví dụ 2:
+      Input: "Giúp tôi giải bài toán: tìm diện tích hình tròn có bán kính 5cm."
+
+      Output:
+      {{
+      "problem": "tìm diện tích hình tròn có bán kính 5cm",
+      "student_solution": "Tôi tính như sau: 2* pi * 5 = 10 pi (cm^2)",
+      "student_get_it_right": ""
+      }}
+
+      Ví dụ 3:
+      Input: "Em chào thầy."
+
+      Output:
+      {{
+      "problem": "",
+      "student_solution": "",
+      "student_get_it_right": ""
+      }}
+
+      Ví dụ 4:
+      Input: "À chết rồi, tôi đã thấy lỗi sai đó. Cảm ơn nhe"
+
+      Output:
+      {{
+      "problem": "",
+      "student_solution": "",
+      "student_get_it_right": "À chết rồi, tôi đã thấy lỗi sai đó. Cảm ơn nhe"
+      }}
+      """
+
+
+#  Input:
+#       Problem: {prob}
+#       Student_solution: {sol}
+#       Ground_truth: {ground_truth}
+#       Input: {inputt}
