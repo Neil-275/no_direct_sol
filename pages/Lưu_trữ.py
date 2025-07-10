@@ -9,6 +9,7 @@ from PIL import Image
 import io
 import hashlib
 import uuid
+from RAG.processPDF import update_pdf_data, read_vectordb, ask_with_monica, template, init_faiss_db
 
 # Configuration
 UPLOAD_DIR = "archives/uploads"
@@ -84,6 +85,9 @@ class ArchiveManager:
             # Generate thumbnail
             self.generate_pdf_thumbnail(filepath)
             
+            init_faiss_db()
+            update_pdf_data([filename])
+
             return filepath
         return None
     
@@ -207,7 +211,7 @@ def main():
         
         if uploaded_file is not None:
             if st.button("Save to Archive"):
-                with st.spinner("Saving file and generating thumbnail..."):
+                with st.spinner("Saving file, write to database and generating thumbnail..."):
                     saved_path = archive_manager.save_uploaded_file(uploaded_file)
                     if saved_path:
                         st.success(f"File saved successfully!")

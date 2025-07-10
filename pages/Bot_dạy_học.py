@@ -10,7 +10,7 @@ import time
 # from utils.web_search import serpapi_search
 from utils.agent import construct_agent
 from utils.convert_latex import convert_latex_to_markdown
-
+from RAG.processPDF import update_pdf_data, read_vectordb, ask_with_monica, template, init_faiss_db
 
 @st.cache_resource
 def get_agent():
@@ -21,6 +21,112 @@ def get_agent():
 agent = get_agent()
 
 SESSION_FILE = "chat_sessions.json"
+
+def handle_normal_chat(prompt, sessions, agent, Tutor_prompt):
+    """Xử lý chat bình thường (không RAG)"""
+    # Hiển thị tin nhắn người dùng
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    client = OpenAI()
+
+    # Tin nhắn hệ thống + lịch sử
+    messages = [{"role": "system", "content": Tutor_prompt}]
+    messages += [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
+
+    config = {'configurable': {"thread_id": "1"}}
+
+    # Hiển thị assistant typing
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+
+        print("+++++++++++++++++ New iteration ++++++++++++++++++")
+        for step in agent.stream(
+            {
+                'messages': messages,
+                'problem': st.session_state['problem'],
+                'ground_truth': st.session_state['ground_truth'],
+                'student_solution': st.session_state['student_solution'],
+                'student_get_it_right': st.session_state['student_get_it_right'],
+                'web_query': "",
+            },
+            config,
+            stream_mode='updates'
+        ):
+            key = list(step.keys())[0]
+            print("_________________\nStep output:")
+            print("Node: ", list(step.keys())[0])
+            print("messages:", step[key]['messages'][-1])
+            for k in step[key].keys():
+                if k != "messages":
+                    print(f"{k}: {step[key][k]}")
+            out = step
+
+        last_state = None
+        if out.get("call_general_chat"):
+            last_state = out["call_general_chat"]
+        if out.get("tutor"):
+            last_state = out["tutor"]
+        if out.get("web_search"):
+            last_state = out["web_search"]
+
+        if st.session_state['problem'] == "" and last_state['problem']:
+            st.session_state['problem'] = last_state['problem']
+        if st.session_state['ground_truth'] == "" and last_state['ground_truth']:
+            st.session_state['ground_truth'] = last_state['ground_truth']
+
+        full_response = convert_latex_to_markdown(last_state['messages'][-1]['content'])
+        message_placeholder.markdown(full_response)
+        st.session_state["typing"] = False
+
+        # Thêm tin nhắn assistant
+        st.session_state["messages"].append({"role": "assistant", "content": full_response})
+
+        # Cập nhật session
+        for s in sessions:
+            if s["id"] == st.session_state["current_session_id"]:
+                s["messages"] = st.session_state["messages"]
+                s["updated_at"] = datetime.now().isoformat()
+        save_sessions(sessions)
+
+        # Hiển thị trạng thái
+        success_placeholder = st.empty()
+        success_placeholder.success("✅ Phản hồi hoàn tất!")
+        time.sleep(2)
+        success_placeholder.empty()
+
+def handle_rag_chat(prompt, sessions, db, template, file_filter=None):
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Thêm user message vào session state
+    st.session_state["messages"].append({"role": "user", "content": prompt})
+
+    # Cập nhật session name nếu là tin nhắn đầu
+    user_messages = [m for m in st.session_state["messages"] if m["role"] == "user"]
+    for s in sessions:
+        if s["id"] == st.session_state["current_session_id"]:
+            if len(user_messages) == 1:
+                s["name"] = prompt[:30] + "..." if len(prompt) > 30 else prompt
+            s["messages"] = st.session_state["messages"]
+            s["updated_at"] = datetime.now().isoformat()
+    save_sessions(sessions)
+
+    # Query RAG
+    result = ask_with_monica(db, prompt, template, file_filter=file_filter)
+    print(f"RAG result: {result}")
+    with st.chat_message("assistant"):
+        st.markdown(result)
+
+    st.session_state["messages"].append({"role": "assistant", "content": result})
+
+    # Cập nhật session
+    for s in sessions:
+        if s["id"] == st.session_state["current_session_id"]:
+            s["messages"] = st.session_state["messages"]
+            s["updated_at"] = datetime.now().isoformat()
+    save_sessions(sessions)
 
 def load_sessions():
     if os.path.exists(SESSION_FILE):
@@ -274,83 +380,22 @@ if st.session_state["current_session_id"]:
     #     if name:
     #         st.write(f"Hello, {name}!")
     # Chat input
+    with st.sidebar:
+        st.markdown("## 🔧 Tuỳ chọn")
+        use_rag = st.checkbox("📄 Sử dụng RAG", value=False)
     if prompt := st.chat_input("💭 Đặt câu hỏi hoặc bắt đầu cuộc trò chuyện..."):
-        # Add user message
         st.session_state["messages"].append({"role": "user", "content": prompt})
-        
-        # Update session name if first message (excluding welcome message)
         user_messages = [m for m in st.session_state["messages"] if m["role"] == "user"]
         for s in sessions:
             if s["id"] == st.session_state["current_session_id"]:
-                if len(user_messages) == 1:  # First user message
+                if len(user_messages) == 1:
                     s["name"] = prompt[:30] + "..." if len(prompt) > 30 else prompt
                 s["messages"] = st.session_state["messages"]
                 s["updated_at"] = datetime.now().isoformat()
         save_sessions(sessions)
-        
-        # Display user message
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        client = OpenAI()
-        # Generate response
-        with st.chat_message("assistant"):
-            message_placeholder = st.empty()
-            full_response = ""
-            messages = [{"role": "system", "content": Tutor_prompt}]
-            # messages = []
-            messages += [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
-            config = {'configurable': {"thread_id": "1"}}
-
-            print("+++++++++++++++++ New iteration ++++++++++++++++++")
-            for step in agent.stream({'messages': messages,
-                                    'problem': st.session_state['problem'],
-                                    'ground_truth': st.session_state['ground_truth'],
-                                    'student_solution': st.session_state['student_solution'],
-                                    'student_get_it_right': st.session_state['student_get_it_right'],
-                                    'web_query': "",
-                                    },
-                                    config,
-                                    stream_mode='updates'):
-                key = list(step.keys())[0]
-                print("_________________\nStep output:")
-                print("Node: ", list(step.keys())[0])
-                print("messages:", step[key]['messages'][-1])
-                for k in step[key].keys():
-                    if k != "messages":
-                        print(f"{k}: {step[key][k]}")
-                out = step
-            last_state = None     
-            if out.get("call_general_chat"):
-                last_state = out["call_general_chat"]
-            if out.get("tutor"):
-                last_state = out["tutor"]
-            if out.get("web_search"):
-                last_state = out["web_search"]
-
-                
-            if st.session_state['problem'] == "" and last_state['problem']:
-                st.session_state['problem'] = last_state['problem']
-            
-            if st.session_state['ground_truth'] == "" and last_state['ground_truth']:
-                st.session_state['ground_truth'] = last_state['ground_truth']
-            full_response = convert_latex_to_markdown(last_state['messages'][-1]['content'])
-            # Final response
-            message_placeholder.markdown(full_response)
-            st.session_state["typing"] = False
-            
-            # Add assistant message
-            st.session_state["messages"].append({"role": "assistant", "content": full_response})
-            
-            # Save session
-            for s in sessions:
-                if s["id"] == st.session_state["current_session_id"]:
-                    s["messages"] = st.session_state["messages"]
-                    s["updated_at"] = datetime.now().isoformat()
-            save_sessions(sessions)
-            
-            # Show success message
-            success_placeholder = st.empty()
-            success_placeholder.success("✅ Phản hồi hoàn tất!")
-            time.sleep(2)
-            success_placeholder.empty()
+        if use_rag:
+            db= read_vectordb()
+            handle_rag_chat(prompt, sessions, db, template, file_filter=None)
+            #handle_rag_chat(prompt, sessions, agent, Tutor_prompt)
+        else:
+            handle_normal_chat(prompt, sessions, agent, Tutor_prompt)
