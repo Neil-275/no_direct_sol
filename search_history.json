@@ -1,0 +1,24 @@
+{
+  "search documents about Linear Programming": {
+    "results": [
+      "- **Linear Programming**\nThe fundamental theorem of linear programming is: If a finite optimal solution exists, then at least one extreme point is optimal. To find the exact coordinate ...\nhttps://www.uky.edu/~dsianita/300/online/LP.pdf",
+      "- **Linear programming 1 Basics**\nLinear Programming deals with the problem of optimizing a linear objective function subject to linear equality and inequality constraints on ...\nhttps://math.mit.edu/~goemans/18310S15/lpnotes310.pdf",
+      "- **Linear Programming - Articles**\nA new approach for solving linear fractional programming problems with duality concept (Articles) Farhana Ahmed Simi, Md. Shahjalal Talukder\nhttps://scirp.org/journal/articles?searchcode=+Linear+Programming&searchfield=keyword&page=1&skid=0",
+      "- **LINEAR PROGRAMMING**\nLinear programming can be viewed as part of a great revolutionary development which has given mankind the ability to state general goals and to lay out a ...\nhttps://www.engineering.iastate.edu/~jdm/ee458/DantzigHistoryLP.pdf",
+      "- **(PDF) Linear Programming for Optimization**\nLinear programming is the name of a branch of applied mathematics that deals with solving optimization problems of a particular form.\nhttps://www.researchgate.net/publication/2420905_Linear_Programming_for_Optimization",
+      "- **Linear Programming Lec11p1, ORF363/COS323**\nLinear programming is a subclass of convex optimization problems in which both the constraints and the objective function are linear (or affine) functions. A ...\nhttps://www.princeton.edu/~aaa/Public/Teaching/ORF363_COS323/F16/ORF363_COS323_F16_Lec11.pdf"
+    ],
+    "timestamp": "2025-07-10T18:00:18.601649"
+  },
+  "tài liệu về quy hoạch tuyến tính": {
+    "results": [
+      "- **GIÁO TRÌNH QUY HOẠCH TUYẾN TÍNH - TỰ HỌC TOÁN**\n-Mỗi ràng buộc với một dấu có thể đưa về ràng buộc với các dấu còn lại: *Ràng buộc đưa về ràng buộc với dấu = như sau bằng cách thêm vào biến , đgl biến phụ ( ...\nhttps://tuhoctoan.edu.vn/wp-content/uploads/2021/08/GIAO-TRINH-QUY-HOACH-TUYEN-TINH.pdf",
+      "- **Giáo trình quy hoạch tuyến tính**\n1- Bạn hiểu như thế nào về khái niệm đối ngẫu ? 2- Quy hoạch tuyến tính đối ngẫu của một quy hoach tuyến tính chính tắc có dạng như thế nào ?\nhttps://nguyenduyphuc.files.wordpress.com/2014/09/giao-trinh-quy-hoach-tuyen-tinh.pdf",
+      "- **giao-trinh-quy-hoach-tuyen-tinh-ts-nguyen-phu-vinh- ...**\nÝ nghĩa hình học và phương pháp đồ thị: Xét bài toán Quy hoạch tuyến tính f(x)=4x1 + x2 → max. [x1 + x2 ≤5. 2x1 +3x2 ≤12. X1; x2 ≥0. Ta biểu diễn tập phương án ...\nhttps://www.iuv.edu.vn/cms/plugin_upload/preview/news/1470/1161/giao-trinh-quy-hoach-tuyen-tinh-ts-nguyen-phu-vinh-893625-1.pdf",
+      "- **BT quy hoạch tuyến tính (có lời giải chi tiết) | PDF**\nTài liệu này được biên soạn để ôn tập cho môn quy hoạch tuyến tính tại Đại học Sư phạm TP.HCM, chủ yếu tập trung vào các bài tập từ chương pháp đơn hình trở ...\nhttps://www.slideshare.net/slideshow/bt-quy-ho-ch-tuy-n-tinh-co-l-i-gi-i-chi-ti-t/269265479",
+      "- **Giáo trình quy hoạch tuyến tính**\nMột ý tưởng tự nhiên để giải bài toán quy hoạch nguyên là cứ giải như một bài toán quy hoạch tuyến tính tổng quát tạm bỏ qua ràng buộc biến phải nguyên. Khi tìm ...\nhttps://voer.edu.vn/c/quy-hoach-tuyen-tinh/78021439/503d9533",
+      "- **1.1. Mở đầu 1.2. Bài toán quy hoạch tuyến tính**\n- Quy hoạch tuyến tính ( linear programming _ LP) là bài toán tối ưu hoá, trong đó hàm mục tiêu (objective function) và các ràng buộc đều là hàm tuyến tính. 1.1 ...\nhttps://dangcnd.files.wordpress.com/2009/08/tkt.pdf"
+    ],
+    "timestamp": "2025-07-10T18:02:12.923222"
+  }
+}

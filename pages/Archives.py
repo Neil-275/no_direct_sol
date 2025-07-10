@@ -7,8 +7,13 @@ import json
 import uuid
 from serpapi import GoogleSearch
 import PyPDF2
+import asyncio
+from datetime import datetime
 
 SESSION_FILE = "chat_sessions.json"
+
+# Cache for search results
+search_cache = {}
 
 def load_sessions():
     if os.path.exists(SESSION_FILE):
@@ -20,29 +25,80 @@ def save_sessions(sessions):
     with open(SESSION_FILE, "w", encoding="utf-8") as f:
         json.dump(sessions, f, ensure_ascii=False, indent=2)
 
-def serpapi_search(query, api_key):
+def save_search_history(query, results):
+    history_file = "search_history.json"
+    history = {}
+    if os.path.exists(history_file):
+        with open(history_file, "r", encoding="utf-8") as f:
+            history = json.load(f)
+    history[query] = {
+        "results": results,
+        "timestamp": datetime.now().isoformat()
+    }
+    with open(history_file, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+
+def load_search_history():
+    history_file = "search_history.json"
+    if os.path.exists(history_file):
+        with open(history_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+async def serpapi_search(query, api_key, pages=1, language="vi", location=None, result_type=None, domain=None, content_type=None):
     try:
+        # Check cache
+        if query in search_cache:
+            return search_cache[query]
+
         params = {
             "engine": "google",
             "q": query,
             "api_key": api_key,
             "num": 3,
-            "hl": "vi"
+            "hl": "vi",
         }
-        search = GoogleSearch(params)
-        results = search.get_dict()
-        organic = results.get("organic_results", [])
-        if not organic:
-            return "Không tìm thấy kết quả web search."
+        if location:
+            params["location"] = location
+        if result_type:
+            params["tbm"] = result_type  # e.g., "isch" for images
+        if domain:
+            params["site"] = domain  # Restrict results to a specific domain
+        if content_type:
+            params["filetype"] = content_type  # Filter by content type (e.g., "pdf", "doc")
+
         output = []
-        for item in organic:
-            title = item.get("title", "")
-            link = item.get("link", "")
-            snippet = item.get("snippet", "")
-            output.append(f"- **{title}**\n{snippet}\n{link}")
+        for page in range(1, pages + 1):
+            params["start"] = (page - 1) * 3
+            search = GoogleSearch(params)
+            results = search.get_dict()
+            organic = results.get("organic_results", [])
+            if not organic:
+                break
+            for item in organic:
+                title = item.get("title", "")
+                link = item.get("link", "")
+                snippet = item.get("snippet", "")
+                output.append(f"- **{title}**\n{snippet}\n{link}")
+
+        if not output:
+            return "Không tìm thấy kết quả web search."
+
+        # Cache results
+        search_cache[query] = "\n\n".join(output)
+
+        # Save to history
+        save_search_history(query, output)
+
         return "\n\n".join(output)
     except Exception as e:
         return f"Không thể lấy kết quả web search: {e}"
+
+def export_results_to_json(query, results):
+    filename = f"{query.replace(' ', '_')}_results.json"
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump({"query": query, "results": results}, f, ensure_ascii=False, indent=2)
+    return f"Kết quả đã được xuất ra file: {filename}"
 
 dotenv.load_dotenv()
 st.title("TutorBot (Web Enhanced)")
@@ -164,7 +220,7 @@ if prompt := st.chat_input("What is up?"):
 
     # Tìm kiếm web với SerpAPI
     with st.spinner("Đang tìm kiếm thông tin trên internet..."):
-        web_results = serpapi_search(prompt, serpapi_key)
+        web_results = asyncio.run(serpapi_search(prompt, serpapi_key, pages=2, language="vi"))
     if web_results:
         with st.chat_message("system"):
             st.markdown(f"**Kết quả web search:**\n{web_results}")
