@@ -7,6 +7,7 @@ import json
 import uuid
 from datetime import datetime
 import time
+from utils.web_search import serpapi_search
 
 SESSION_FILE = "chat_sessions.json"
 
@@ -85,20 +86,6 @@ sessions = load_sessions()
 
 # Sidebar for session management
 with st.sidebar:
-    st.markdown("### 💬 Quản lý phiên chat")
-    
-    # Statistics
-    total_sessions = len(sessions)
-    total_messages = sum(len(s.get("messages", [])) for s in sessions)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Phiên chat", total_sessions)
-    with col2:
-        st.metric("Tin nhắn", total_messages)
-    
-    st.markdown("---")
-    
     # New chat button
     if st.button("🆕 Phiên chat mới", type="primary", use_container_width=True):
         st.session_state["confirm_new"] = True
@@ -214,42 +201,19 @@ with st.sidebar:
                 st.markdown("---")
 
 # Main chat area
-col1, col2 = st.columns([3, 1])
 
-with col1:
-    # Current session info
-    if st.session_state["current_session_id"]:
-        current_session = next((s for s in sessions if s["id"] == st.session_state["current_session_id"]), None)
-        if current_session:
-            session_name = current_session.get("name", "") or get_session_preview(current_session.get("messages", []))
-            st.markdown(f"### 💬 {session_name}")
-            st.caption(f"📅 Tạo: {format_timestamp(current_session.get('created_at'))} | 🔄 Cập nhật: {format_timestamp(current_session.get('updated_at'))}")
-            st.session_state["messages"] = current_session.get("messages", [])
-    else:
-        st.markdown("### 💬 Chọn phiên chat hoặc tạo mới")
-        st.info("👈 Hãy chọn một phiên chat từ sidebar hoặc tạo phiên mới để bắt đầu trò chuyện!")
+# Current session info
+if st.session_state["current_session_id"]:
+    current_session = next((s for s in sessions if s["id"] == st.session_state["current_session_id"]), None)
+    if current_session:
+        session_name = current_session.get("name", "") or get_session_preview(current_session.get("messages", []))
+        st.markdown(f"### 💬 {session_name}")
+        st.caption(f"📅 Tạo: {format_timestamp(current_session.get('created_at'))} | 🔄 Cập nhật: {format_timestamp(current_session.get('updated_at'))}")
+        st.session_state["messages"] = current_session.get("messages", [])
+else:
+    st.markdown("### 💬 Chọn phiên chat hoặc tạo mới")
+    st.info("👈 Hãy chọn một phiên chat từ sidebar hoặc tạo phiên mới để bắt đầu trò chuyện!")
 
-with col2:
-    # Quick actions
-    st.markdown("### ⚡ Thao tác nhanh")
-    if st.button("🔄 Làm mới", use_container_width=True):
-        st.rerun()
-    
-    if st.button("📤 Xuất chat", use_container_width=True):
-        if st.session_state["messages"]:
-            chat_export = {
-                "session_id": st.session_state["current_session_id"],
-                "messages": st.session_state["messages"],
-                "exported_at": datetime.now().isoformat()
-            }
-            st.download_button(
-                "💾 Tải xuống",
-                data=json.dumps(chat_export, ensure_ascii=False, indent=2),
-                file_name=f"chat_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                mime="application/json"
-            )
-        else:
-            st.warning("Không có tin nhắn để xuất!")
 
 # Chat interface
 if st.session_state["current_session_id"]:
@@ -299,57 +263,72 @@ if st.session_state["current_session_id"]:
         
         if not monica_api_key:
             st.error("❌ Không tìm thấy Monica API key. Vui lòng kiểm tra file .env")
-        else:
             # Initialize Monica client
-            client = OpenAI(
-                base_url="https://openapi.monica.im/v1",
-                api_key=monica_api_key,
-            )
+        client = OpenAI()
+        
+        # Generate response
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
             
-            # Generate response
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
-                
-                # Set typing indicator
-                st.session_state["typing"] = True
-                
-                # Prepare messages for API
-                messages = [{"role": "system", "content": Tutor_prompt}]
-                messages += [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
-                
-                try:
-                    # Stream response
-                    for response in client.chat.completions.create(
-                        model="gemini-2.0-flash-exp",
-                        messages=messages,
-                        stream=True
-                    ):
-                        content = getattr(response.choices[0].delta, "content", "")
-                        full_response += content if isinstance(content, str) else ""
-                        message_placeholder.markdown(full_response + "▌")
-                    
-                    # Final response
-                    message_placeholder.markdown(full_response)
-                    st.session_state["typing"] = False
-                    
-                    # Add assistant message
-                    st.session_state["messages"].append({"role": "assistant", "content": full_response})
-                    
-                    # Save session
-                    for s in sessions:
-                        if s["id"] == st.session_state["current_session_id"]:
-                            s["messages"] = st.session_state["messages"]
-                            s["updated_at"] = datetime.now().isoformat()
-                    save_sessions(sessions)
-                    
-                    # Show success message
-                    st.success("✅ Phản hồi hoàn tất!")
-                    
-                except Exception as e:
-                    st.session_state["typing"] = False
-                    st.error(f"❌ Đã xảy ra lỗi: {str(e)}")
-                    st.error("Vui lòng thử lại sau hoặc kiểm tra kết nối mạng.")
+            # Set typing indicator
+            st.session_state["typing"] = True
+            
+            # Prepare messages for API
+            messages = [{"role": "system", "content": Tutor_prompt}]
+            messages += [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
+            
+            
+                # Stream response
+            for response in client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                stream=True
+            ):
+                # print(response)
+                content = getattr(response.choices[0].delta, "content", "")
+                full_response += content if isinstance(content, str) else ""
+                message_placeholder.markdown(full_response + "▌")
+            
+            # Final response
+            message_placeholder.markdown(full_response)
+            st.session_state["typing"] = False
+            
+            # Add assistant message
+            st.session_state["messages"].append({"role": "assistant", "content": full_response})
+            
+            # Save session
+            for s in sessions:
+                if s["id"] == st.session_state["current_session_id"]:
+                    s["messages"] = st.session_state["messages"]
+                    s["updated_at"] = datetime.now().isoformat()
+            save_sessions(sessions)
+            
+            # Show success message
+            st.success("✅ Phản hồi hoàn tất!")
+
+st.markdown("""
+<script>
+    function scrollToBottom() {
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+    
+    // Auto-scroll when new messages arrive
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                setTimeout(scrollToBottom, 100);
+            }
+        });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+</script>
+""", unsafe_allow_html=True)
+                # except Exception as e:
+                # st.session_state["typing"] = False
+                # st.error(f"❌ Đã xảy ra lỗi: {str(e)}")
+                # st.error("Vui lòng thử lại sau hoặc kiểm tra kết nối mạng.")
 
 # Footer
 # st.markdown("---")

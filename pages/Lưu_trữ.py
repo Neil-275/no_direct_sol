@@ -1,858 +1,304 @@
 import streamlit as st
-from openai import OpenAI
-from prompts.prompts import Tutor_prompt
 import os
-import dotenv
 import json
-import uuid
-from serpapi import GoogleSearch
-import PyPDF2
+import base64
 from datetime import datetime
-import time
+from pathlib import Path
+import fitz  # PyMuPDF for PDF handling
+from PIL import Image
+import io
+import hashlib
+import uuid
 
-SESSION_FILE = "chat_sessions.json"
+# Configuration
+UPLOAD_DIR = "archives/uploads"
+SEARCH_RESULTS_DIR = "archives/search_results"
+THUMBNAILS_DIR = "archives/thumbnails"
 
-def load_sessions():
-    if os.path.exists(SESSION_FILE):
-        with open(SESSION_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+# Ensure directories exist
+for directory in [UPLOAD_DIR, SEARCH_RESULTS_DIR, THUMBNAILS_DIR]:
+    os.makedirs(directory, exist_ok=True)
 
-def save_sessions(sessions):
-    with open(SESSION_FILE, "w", encoding="utf-8") as f:
-        json.dump(sessions, f, ensure_ascii=False, indent=2)
-
-def serpapi_search(query, api_key):
-    """Enhanced web search with better error handling and formatting"""
-    try:
-        params = {
-            "engine": "google",
-            "q": query,
-            "api_key": api_key,
-            "num": 5,
-            "hl": "vi"
+class ArchiveProtocol:
+    """Protocol for communication between chatbot and archive system"""
+    
+    @staticmethod
+    def save_search_result(query, results, metadata=None):
+        """Save web search results to archive"""
+        timestamp = datetime.now().isoformat()
+        result_id = str(uuid.uuid4())
+        
+        search_data = {
+            "id": result_id,
+            "query": query,
+            "results": results,
+            "timestamp": timestamp,
+            "metadata": metadata or {},
+            "type": "web_search"
         }
-        search = GoogleSearch(params)
-        results = search.get_dict()
-        organic = results.get("organic_results", [])
         
-        if not organic:
-            return "Không tìm thấy kết quả web search."
+        # Save to JSON file
+        filename = f"search_{result_id}.json"
+        filepath = os.path.join(SEARCH_RESULTS_DIR, filename)
         
-        output = []
-        for i, item in enumerate(organic, 1):
-            title = item.get("title", "")
-            link = item.get("link", "")
-            snippet = item.get("snippet", "")
-            output.append(f"**{i}. {title}**\n{snippet}\n🔗 {link}")
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(search_data, f, indent=2, ensure_ascii=False)
         
-        return "\n\n".join(output)
-    except Exception as e:
-        return f"⚠️ Không thể lấy kết quả web search: {str(e)}"
-
-def extract_pdf_content(uploaded_files):
-    """Extract text content from uploaded PDF files"""
-    content = ""
-    file_info = []
+        # Generate thumbnail for search result
+        ArchiveProtocol.generate_search_thumbnail(result_id, query, results)
+        
+        return result_id
     
-    for uploaded_file in uploaded_files:
+    @staticmethod
+    def generate_search_thumbnail(result_id, query, results):
+        """Generate a thumbnail for search results"""
+        # Create a simple thumbnail image for search results
+        img = Image.new('RGB', (200, 150), color='lightblue')
+        # In a real implementation, you might want to use PIL's ImageDraw
+        # to add text or create a more sophisticated thumbnail
+        
+        thumbnail_path = os.path.join(THUMBNAILS_DIR, f"search_{result_id}.png")
+        img.save(thumbnail_path)
+        
+        return thumbnail_path
+
+class ArchiveManager:
+    """Main archive management class"""
+    
+    def __init__(self):
+        self.protocol = ArchiveProtocol()
+    
+    def save_uploaded_file(self, uploaded_file):
+        """Save uploaded file and generate thumbnail"""
+        if uploaded_file is not None:
+            # Generate unique filename
+            file_hash = hashlib.md5(uploaded_file.getvalue()).hexdigest()[:8]
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{file_hash}_{uploaded_file.name}"
+            filepath = os.path.join(UPLOAD_DIR, filename)
+            
+            # Save file
+            with open(filepath, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            # Generate thumbnail
+            self.generate_pdf_thumbnail(filepath)
+            
+            return filepath
+        return None
+    
+    def generate_pdf_thumbnail(self, filepath):
+        """Generate thumbnail for PDF file"""
         try:
-            reader = PyPDF2.PdfReader(uploaded_file)
-            file_content = ""
-            for page_num, page in enumerate(reader.pages, 1):
-                page_text = page.extract_text() or ""
-                file_content += page_text
+            # Open PDF and get first page
+            doc = fitz.open(filepath)
+            page = doc[0]
             
-            content += f"\n\n=== {uploaded_file.name} ===\n{file_content}"
-            file_info.append({
-                "name": uploaded_file.name,
-                "pages": len(reader.pages),
-                "size": len(file_content)
-            })
+            # Render page as image
+            pix = page.get_pixmap(matrix=fitz.Matrix(0.5, 0.5))
+            img_data = pix.tobytes("png")
+            
+            # Save thumbnail
+            filename = Path(filepath).stem + ".png"
+            thumbnail_path = os.path.join(THUMBNAILS_DIR, filename)
+            
+            with open(thumbnail_path, "wb") as f:
+                f.write(img_data)
+            
+            doc.close()
+            return thumbnail_path
+            
         except Exception as e:
-            st.error(f"❌ Lỗi đọc file {uploaded_file.name}: {str(e)}")
+            st.error(f"Error generating thumbnail: {str(e)}")
+            return None
     
-    return content, file_info
+    def get_uploaded_files(self):
+        """Get list of uploaded files with metadata"""
+        files = []
+        if os.path.exists(UPLOAD_DIR):
+            for filename in os.listdir(UPLOAD_DIR):
+                filepath = os.path.join(UPLOAD_DIR, filename)
+                if os.path.isfile(filepath):
+                    stat = os.stat(filepath)
+                    files.append({
+                        "name": filename,
+                        "path": filepath,
+                        "size": stat.st_size,
+                        "modified": datetime.fromtimestamp(stat.st_mtime),
+                        "type": "uploaded_file"
+                    })
+        return sorted(files, key=lambda x: x["modified"], reverse=True)
+    
+    def get_search_results(self):
+        """Get list of saved search results"""
+        results = []
+        if os.path.exists(SEARCH_RESULTS_DIR):
+            for filename in os.listdir(SEARCH_RESULTS_DIR):
+                if filename.endswith('.json'):
+                    filepath = os.path.join(SEARCH_RESULTS_DIR, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                            results.append(data)
+                    except Exception as e:
+                        st.error(f"Error reading {filename}: {str(e)}")
+        return sorted(results, key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    def get_thumbnail_path(self, item):
+        """Get thumbnail path for an item"""
+        if item.get("type") == "uploaded_file":
+            filename = Path(item["name"]).stem + ".png"
+            return os.path.join(THUMBNAILS_DIR, filename)
+        elif item.get("type") == "web_search":
+            return os.path.join(THUMBNAILS_DIR, f"search_{item['id']}.png")
+        return None
 
-def get_session_preview(messages, max_length=50):
-    """Get a preview of the session from the first user message"""
-    if not messages:
-        return "Phiên trống"
-    
-    first_user_msg = next((msg for msg in messages if msg["role"] == "user"), None)
-    if not first_user_msg:
-        return "Phiên trống"
-    
-    preview = first_user_msg["content"].strip()
-    return preview[:max_length] + "..." if len(preview) > max_length else preview
-
-def format_timestamp(timestamp=None):
-    """Format timestamp for display"""
-    if timestamp is None:
-        timestamp = datetime.now().isoformat()
+def display_pdf_viewer(filepath):
+    """Display PDF in Streamlit"""
     try:
-        dt = datetime.fromisoformat(timestamp)
-        return dt.strftime("%d/%m %H:%M")
-    except:
-        return datetime.now().strftime("%d/%m %H:%M")
-
-def format_timestamp(timestamp=None):
-    """Format timestamp for display"""
-    if timestamp is None:
-        timestamp = datetime.now().isoformat()
-    try:
-        dt = datetime.fromisoformat(timestamp)
-        return dt.strftime("%d/%m %H:%M")
-    except:
-        return datetime.now().strftime("%d/%m %H:%M")
-
-# Configure page
-st.set_page_config(
-    page_title="TutorBot - Web Enhanced AI Tutor",
-    page_icon="🌐",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Custom CSS for modern UI
-st.markdown("""
-<style>
-    /* Hide default Streamlit elements */
-    #MainMenu {visibility: hidden;}
-    .stDeployButton {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* Custom styling */
-    .main-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        text-align: center;
-        color: white;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    }
-    
-    .feature-badge {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.9em;
-        margin: 0 4px;
-        display: inline-block;
-        backdrop-filter: blur(10px);
-    }
-    
-    .session-item {
-        background: white;
-        padding: 12px;
-        border-radius: 8px;
-        margin: 8px 0;
-        border-left: 4px solid #667eea;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-    
-    .session-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    }
-    
-    .pdf-upload-area {
-        background: #f8f9fa;
-        border: 2px dashed #667eea;
-        border-radius: 10px;
-        padding: 20px;
-        text-align: center;
-        margin: 10px 0;
-    }
-    
-    .pdf-info {
-        background: #e8f4f8;
-        border: 1px solid #bee5eb;
-        border-radius: 8px;
-        padding: 12px;
-        margin: 8px 0;
-    }
-    
-    .search-result {
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 8px;
-        padding: 15px;
-        margin: 10px 0;
-    }
-    
-    .search-result h4 {
-        color: #856404;
-        margin: 0 0 8px 0;
-    }
-    
-    .typing-indicator {
-        display: flex;
-        align-items: center;
-        margin: 10px 0;
-        color: #666;
-    }
-    
-    .typing-dots {
-        display: flex;
-        margin-left: 10px;
-    }
-    
-    .typing-dots span {
-        height: 8px;
-        width: 8px;
-        background-color: #667eea;
-        border-radius: 50%;
-        display: inline-block;
-        margin: 0 2px;
-        animation: typing 1.4s infinite ease-in-out;
-    }
-    
-    .typing-dots span:nth-child(1) { animation-delay: 0s; }
-    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-    
-    @keyframes typing {
-        0%, 60%, 100% { transform: translateY(0); }
-        30% { transform: translateY(-15px); }
-    }
-    
-    .status-card {
-        background: white;
-        padding: 16px;
-        border-radius: 10px;
-        border: 1px solid #e9ecef;
-        margin: 8px 0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-    
-    .status-online {
-        border-left: 4px solid #28a745;
-    }
-    
-    .status-offline {
-        border-left: 4px solid #dc3545;
-    }
-    
-    .feature-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin: 20px 0;
-    }
-    
-    .feature-card {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        border: 1px solid #e9ecef;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s ease;
-    }
-    
-    .feature-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    }
-    
-    .feature-icon {
-        font-size: 2em;
-        margin-bottom: 10px;
-    }
-    
-    .web-search-spinner {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        margin: 10px 0;
-    }
-    
-    .search-indicator {
-        display: flex;
-        align-items: center;
-        background: #e3f2fd;
-        border: 1px solid #bbdefb;
-        border-radius: 20px;
-        padding: 8px 16px;
-        margin: 8px 0;
-        font-size: 0.9em;
-    }
-    
-    .search-indicator .spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid #2196f3;
-        border-top: 2px solid transparent;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 8px;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    .api-status {
-        font-size: 0.9em;
-        padding: 8px 12px;
-        border-radius: 20px;
-        margin: 4px 0;
-        display: inline-block;
-    }
-    
-    .api-status.connected {
-        background: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-    
-    .api-status.disconnected {
-        background: #f8d7da;
-        color: #721c24;
-        border: 1px solid #f5c6cb;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Load environment variables
-dotenv.load_dotenv()
-
-# Initialize session state
-if "current_session_id" not in st.session_state:
-    st.session_state["current_session_id"] = None
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
-if "show_menu" not in st.session_state:
-    st.session_state["show_menu"] = None
-if "confirm_new" not in st.session_state:
-    st.session_state["confirm_new"] = False
-if "confirm_delete" not in st.session_state:
-    st.session_state["confirm_delete"] = None
-if "typing" not in st.session_state:
-    st.session_state["typing"] = False
-if "searching" not in st.session_state:
-    st.session_state["searching"] = False
-
-# Main header
-st.markdown("""
-<div class="main-header">
-    <h1>🌐 TutorBot Web Enhanced</h1>
-    <p>Trợ lý AI thông minh với tích hợp Web Search & PDF</p>
-    <div>
-        <span class="feature-badge">📄 PDF Upload</span>
-        <span class="feature-badge">🔍 Web Search</span>
-        <span class="feature-badge">🤖 AI Chat</span>
-        <span class="feature-badge">💾 Session Save</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# Load sessions
-sessions = load_sessions()
-
-# API Keys status
-monica_api_key = os.getenv('MONICA_API_KEY', '')
-serpapi_key = os.getenv('SERPAPI_KEY', '')
-
-# Sidebar
-with st.sidebar:
-    st.markdown("### 🔧 Cấu hình & Tài liệu")
-    
-    # API Status
-    st.markdown("#### 🔑 Trạng thái API")
-    if monica_api_key:
-        st.markdown('<div class="api-status connected">✅ Monica API: Đã kết nối</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="api-status disconnected">❌ Monica API: Chưa kết nối</div>', unsafe_allow_html=True)
-    
-    if serpapi_key:
-        st.markdown('<div class="api-status connected">✅ SerpAPI: Đã kết nối</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="api-status disconnected">❌ SerpAPI: Chưa kết nối</div>', unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
-    # PDF Upload Section
-    st.markdown("#### 📄 Tải lên tài liệu PDF")
-    uploaded_pdfs = st.file_uploader(
-        "Chọn file PDF để tham khảo", 
-        type=["pdf"], 
-        accept_multiple_files=True,
-        help="Tải lên các file PDF để TutorBot có thể tham khảo thông tin từ tài liệu của bạn"
-    )
-    
-    pdf_content = ""
-    pdf_info = []
-    
-    if uploaded_pdfs:
-        with st.spinner("🔄 Đang xử lý file PDF..."):
-            pdf_content, pdf_info = extract_pdf_content(uploaded_pdfs)
+        with open(filepath, "rb") as f:
+            base64_pdf = base64.b64encode(f.read()).decode('utf-8')
         
-        if pdf_info:
-            st.success(f"✅ Đã tải thành công {len(uploaded_pdfs)} file PDF")
-            
-            # Display PDF info
-            for info in pdf_info:
-                st.markdown(f"""
-                <div class="pdf-info">
-                    <strong>📄 {info['name']}</strong><br>
-                    📑 {info['pages']} trang<br>
-                    📊 {info['size']} ký tự
-                </div>
-                """, unsafe_allow_html=True)
+        pdf_display = f"""
+        <iframe src="data:application/pdf;base64,{base64_pdf}" 
+                width="100%" height="600" type="application/pdf">
+        </iframe>
+        """
+        st.markdown(pdf_display, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Error displaying PDF: {str(e)}")
+
+def display_search_result(result_data):
+    """Display search result details"""
+    st.subheader(f"Search Query: {result_data['query']}")
+    st.write(f"**Timestamp:** {result_data['timestamp']}")
     
-    st.markdown("---")
+    if result_data.get('metadata'):
+        st.write("**Metadata:**")
+        st.json(result_data['metadata'])
     
-    # Session Management
-    st.markdown("### 💬 Quản lý phiên chat")
-    
-    # Statistics
-    total_sessions = len(sessions)
-    total_messages = sum(len(s.get("messages", [])) for s in sessions)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Phiên chat", total_sessions)
-    with col2:
-        st.metric("Tin nhắn", total_messages)
-    
-    # New chat button
-    if st.button("🆕 Phiên chat mới", type="primary", use_container_width=True):
-        st.session_state["confirm_new"] = True
-        st.rerun()
-    
-    # Confirm new chat
-    if st.session_state.get("confirm_new"):
-        st.warning("⚠️ Bạn có chắc muốn tạo phiên chat mới?")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("✅ Xác nhận", type="primary"):
-                new_id = str(uuid.uuid4())
-                new_session = {
-                    "id": new_id,
-                    "name": "",
-                    "messages": [],
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat()
-                }
-                sessions.append(new_session)
-                save_sessions(sessions)
-                st.session_state["current_session_id"] = new_id
-                st.session_state["messages"] = []
-                st.session_state["confirm_new"] = False
-                st.success("✅ Đã tạo phiên chat mới!")
-                time.sleep(1)
-                st.rerun()
-        with col2:
-            if st.button("❌ Hủy"):
-                st.session_state["confirm_new"] = False
-                st.rerun()
-    
-    st.markdown("---")
-    st.markdown("### 📋 Danh sách phiên chat")
-    
-    if not sessions:
-        st.markdown("""
-        <div style="text-align: center; padding: 2rem; color: #666;">
-            <p>🔍 Chưa có phiên chat nào</p>
-            <p>Hãy tạo phiên chat mới để bắt đầu!</p>
-        </div>
-        """, unsafe_allow_html=True)
+    st.write("**Results:**")
+    if isinstance(result_data['results'], list):
+        for i, result in enumerate(result_data['results'], 1):
+            st.write(f"{i}. {result}")
     else:
-        # Sort sessions by updated_at (most recent first)
-        sessions.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+        st.write(result_data['results'])
+
+def main():
+    st.set_page_config(page_title="Archives", layout="wide")
+    
+    st.title("📁 Archives")
+    st.markdown("---")
+    
+    # Initialize archive manager
+    archive_manager = ArchiveManager()
+    
+    # Create tabs
+    tab1, tab2 = st.tabs(["📤 Upload Files", "🗂️ View Archives"])
+    
+    with tab1:
+        st.header("File Upload")
         
-        for session in sessions:
-            is_current = session["id"] == st.session_state["current_session_id"]
-            
-            # Session container
-            container = st.container()
-            with container:
-                col1, col2 = st.columns([4, 1])
+        uploaded_file = st.file_uploader(
+            "Choose a PDF file",
+            type=['pdf'],
+            help="Upload PDF files to add them to your archive"
+        )
+        
+        if uploaded_file is not None:
+            if st.button("Save to Archive"):
+                with st.spinner("Saving file and generating thumbnail..."):
+                    saved_path = archive_manager.save_uploaded_file(uploaded_file)
+                    if saved_path:
+                        st.success(f"File saved successfully!")
+                        st.info(f"Saved to: {saved_path}")
+                    else:
+                        st.error("Failed to save file")
+    
+    with tab2:
+        st.header("Archive Browser")
+        
+        # Get all items
+        uploaded_files = archive_manager.get_uploaded_files()
+        search_results = archive_manager.get_search_results()
+        
+        # Combine and sort all items
+        all_items = []
+        all_items.extend(uploaded_files)
+        all_items.extend(search_results)
+        
+        if not all_items:
+            st.info("No items in archive yet. Upload some files or run web searches to populate the archive.")
+            return
+        
+        # Display items in a grid
+        cols = st.columns(3)
+        
+        for i, item in enumerate(all_items):
+            with cols[i % 3]:
+                # Display thumbnail
+                thumbnail_path = archive_manager.get_thumbnail_path(item)
+                if thumbnail_path and os.path.exists(thumbnail_path):
+                    st.image(thumbnail_path, use_container_width=True)
+                else:
+                    st.info("No thumbnail available")
                 
-                with col1:
-                    session_name = session.get("name", "") or get_session_preview(session.get("messages", []))
-                    button_type = "primary" if is_current else "secondary"
+                # Display item info
+                if item.get("type") == "uploaded_file":
+                    st.write(f"**📄 {item['name']}**")
+                    st.write(f"Size: {item['size']} bytes")
+                    st.write(f"Modified: {item['modified'].strftime('%Y-%m-%d %H:%M')}")
                     
-                    if st.button(
-                        f"{'🔵' if is_current else '⚪'} {session_name}",
-                        key=f"session_{session['id']}",
-                        type=button_type,
-                        use_container_width=True
-                    ):
-                        st.session_state["current_session_id"] = session["id"]
-                        st.session_state["messages"] = session.get("messages", [])
-                        st.session_state["show_menu"] = None
-                        st.rerun()
-                
-                with col2:
-                    if st.button("⋮", key=f"menu_{session['id']}"):
-                        st.session_state["show_menu"] = session["id"] if st.session_state.get("show_menu") != session["id"] else None
-                        st.rerun()
-                
-                # Show menu if selected
-                if st.session_state.get("show_menu") == session["id"]:
-                    if st.button("🗑️ Xóa", key=f"delete_{session['id']}", type="secondary", use_container_width=True):
-                        st.session_state["confirm_delete"] = session["id"]
-                        st.rerun()
-                    
-                    # Show session info
-                    st.caption(f"📅 {format_timestamp(session.get('created_at'))}")
-                    st.caption(f"💬 {len(session.get('messages', []))} tin nhắn")
-                
-                # Confirm delete
-                if st.session_state.get("confirm_delete") == session["id"]:
-                    st.error("⚠️ Bạn có chắc muốn xóa phiên này?")
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("✅ Xác nhận", key=f"confirm_delete_{session['id']}", type="primary"):
-                            sessions = [s for s in sessions if s["id"] != session["id"]]
-                            save_sessions(sessions)
-                            st.session_state["show_menu"] = None
-                            st.session_state["confirm_delete"] = None
-                            
-                            if st.session_state["current_session_id"] == session["id"]:
-                                if sessions:
-                                    st.session_state["current_session_id"] = sessions[0]["id"]
-                                    st.session_state["messages"] = sessions[0].get("messages", [])
-                                else:
-                                    st.session_state["current_session_id"] = None
-                                    st.session_state["messages"] = []
-                            
-                            st.success("✅ Đã xóa phiên chat!")
-                            time.sleep(1)
-                            st.rerun()
+                        if st.button(f"View", key=f"view_{i}"):
+                            st.session_state[f"viewing_{i}"] = True
+                    
                     with col2:
-                        if st.button("❌ Hủy", key=f"cancel_delete_{session['id']}"):
-                            st.session_state["confirm_delete"] = None
-                            st.rerun()
+                        if st.button(f"Apply RAG", key=f"util_{i}"):
+                            st.info("Utilities feature will be implemented later")
+                
+                elif item.get("type") == "web_search":
+                    st.write(f"**🔍 Search: {item['query']}**")
+                    st.write(f"Timestamp: {item['timestamp'][:16]}")
+                    
+                    if st.button(f"View Results", key=f"search_{i}"):
+                        st.session_state[f"viewing_search_{i}"] = True
                 
                 st.markdown("---")
-
-# Main chat area
-col1, col2 = st.columns([3, 1])
-
-with col1:
-    # Current session info
-    if st.session_state["current_session_id"]:
-        current_session = next((s for s in sessions if s["id"] == st.session_state["current_session_id"]), None)
-        if current_session:
-            session_name = current_session.get("name", "") or get_session_preview(current_session.get("messages", []))
-            st.markdown(f"### 💬 {session_name}")
-            
-            # Session metadata
-            col_a, col_b, col_c = st.columns(3)
-            with col_a:
-                st.caption(f"📅 {format_timestamp(current_session.get('created_at'))}")
-            with col_b:
-                st.caption(f"💬 {len(current_session.get('messages', []))} tin nhắn")
-            with col_c:
-                st.caption(f"🔄 {format_timestamp(current_session.get('updated_at'))}")
-            
-            st.session_state["messages"] = current_session.get("messages", [])
-    else:
-        st.markdown("### 💬 Chọn phiên chat hoặc tạo mới")
         
-        # Feature showcase
-        st.markdown("""
-        <div class="feature-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🔍</div>
-                <h4>Web Search</h4>
-                <p>Tìm kiếm thông tin mới nhất từ internet</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📄</div>
-                <h4>PDF Upload</h4>
-                <p>Tải lên và phân tích tài liệu PDF</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🤖</div>
-                <h4>AI Chat</h4>
-                <p>Trò chuyện thông minh với AI</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.info("👈 Hãy chọn một phiên chat từ sidebar hoặc tạo phiên mới để bắt đầu!")
-
-with col2:
-    # Quick actions and status
-    st.markdown("### ⚡ Thao tác nhanh")
-    
-    if st.button("🔄 Làm mới", use_container_width=True):
-        st.rerun()
-    
-    if st.button("📤 Xuất chat", use_container_width=True):
-        if st.session_state["messages"]:
-            chat_export = {
-                "session_id": st.session_state["current_session_id"],
-                "messages": st.session_state["messages"],
-                "pdf_files": [info["name"] for info in pdf_info] if pdf_info else [],
-                "exported_at": datetime.now().isoformat()
-            }
-            st.download_button(
-                "💾 Tải xuống",
-                data=json.dumps(chat_export, ensure_ascii=False, indent=2),
-                file_name=f"chat_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                mime="application/json"
-            )
-        else:
-            st.warning("Không có tin nhắn để xuất!")
-    
-    # Status indicators
-    st.markdown("---")
-    st.markdown("### 📊 Trạng thái")
-    
-    if pdf_info:
-        st.markdown(f"📄 **PDF:** {len(pdf_info)} file đã tải")
-    else:
-        st.markdown("📄 **PDF:** Chưa tải file nào")
-    
-    if st.session_state.get("searching"):
-        st.markdown("🔍 **Web Search:** Đang tìm kiếm...")
-    else:
-        st.markdown("🔍 **Web Search:** Sẵn sàng")
-
-# Chat interface
-if st.session_state["current_session_id"]:
-    # Messages container
-    messages_container = st.container()
-    
-    with messages_container:
-        # Display messages
-        for message in st.session_state["messages"]:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-        
-        # Typing indicator
-        if st.session_state.get("typing"):
-            with st.chat_message("assistant"):
-                st.markdown("""
-                <div class="typing-indicator">
-                    <span>TutorBot đang soạn tin nhắn</span>
-                    <div class="typing-dots">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-    
-    # Chat input
-    if prompt := st.chat_input("💭 Đặt câu hỏi, tìm kiếm thông tin hoặc thảo luận về tài liệu..."):
-        # Add user message
-        st.session_state["messages"].append({"role": "user", "content": prompt})
-        
-        # Update session name if first message
-        for s in sessions:
-            if s["id"] == st.session_state["current_session_id"]:
-                if len(st.session_state["messages"]) == 1:
-                    s["name"] = prompt[:30] + "..." if len(prompt) > 30 else prompt
-                s["messages"] = st.session_state["messages"]
-                s["updated_at"] = datetime.now().isoformat()
-        save_sessions(sessions)
-        
-        # Display user message
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        
-        # Web search
-        web_results = ""
-        if serpapi_key:
-            st.session_state["searching"] = True
-            
-            # Show search indicator
-            search_placeholder = st.empty()
-            with search_placeholder:
-                st.markdown("""
-                <div class="search-indicator">
-                    <div class="spinner"></div>
-                    🔍 Đang tìm kiếm thông tin trên internet...
-                </div>
-                """, unsafe_allow_html=True)
-            
-            web_results = serpapi_search(prompt, serpapi_key)
-            st.session_state["searching"] = False
-            search_placeholder.empty()
-            
-            # Display web results
-            if web_results and "Không tìm thấy" not in web_results:
-                with st.expander("🔍 Kết quả Web Search", expanded=True):
-                    st.markdown(f"""
-                    <div class="search-result">
-                        <h4>🌐 Thông tin từ Internet</h4>
-                        {web_results}
-                    </div>
-                    """, unsafe_allow_html=True)
-        
-        # Check API keys
-        if not monica_api_key:
-            st.error("❌ Không tìm thấy Monica API key. Vui lòng kiểm tra file .env")
-        else:
-            # Initialize Monica client
-            client = OpenAI(
-                base_url="https://openapi.monica.im/v1",
-                api_key=monica_api_key,
-            )
-            
-            # Prepare messages for API
-            messages = [{"role": "system", "content": Tutor_prompt}]
-            
-            # Add PDF content if available
-            if pdf_content:
-                messages.append({
-                    "role": "system",
-                    "content": f"Nội dung tài liệu PDF người dùng cung cấp (ưu tiên sử dụng thông tin này nếu liên quan):\n{pdf_content[:4000]}\n(Hết trích đoạn, chỉ dùng để tham khảo trả lời nếu liên quan)"
-                })
-            
-            # Add web search results if available
-            if web_results and "Không tìm thấy" not in web_results and "Không thể lấy" not in web_results:
-                messages.append({
-                    "role": "system",
-                    "content": f"Kết quả web search liên quan (chỉ dùng nếu tài liệu PDF không đủ thông tin):\n{web_results}"
-                })
-            
-            # Add conversation history
-            messages += [{"role": m["role"], "content": m["content"]} for m in st.session_state["messages"]]
-            
-            # Generate response
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
+        # Display viewers based on session state
+        for i, item in enumerate(all_items):
+            if item.get("type") == "uploaded_file" and st.session_state.get(f"viewing_{i}"):
+                st.subheader(f"Viewing: {item['name']}")
+                if st.button(f"Close", key=f"close_{i}"):
+                    st.session_state[f"viewing_{i}"] = False
+                    st.rerun()
                 
-                # Set typing indicator
-                st.session_state["typing"] = True
+                display_pdf_viewer(item['path'])
+            
+            elif item.get("type") == "web_search" and st.session_state.get(f"viewing_search_{i}"):
+                st.subheader("Search Result Details")
+                if st.button(f"Close Search", key=f"close_search_{i}"):
+                    st.session_state[f"viewing_search_{i}"] = False
+                    st.rerun()
                 
-                try:
-                    # Stream response
-                    for response in client.chat.completions.create(
-                        model="gpt-4.1-mini",
-                        messages=messages,
-                        stream=True
-                    ):
-                        content = getattr(response.choices[0].delta, "content", "")
-                        full_response += content if isinstance(content, str) else ""
-                        message_placeholder.markdown(full_response + "▌")
-                    
-                    # Final response
-                    message_placeholder.markdown(full_response)
-                    st.session_state["typing"] = False
-                    
-                    # Add assistant message
-                    st.session_state["messages"].append({"role": "assistant", "content": full_response})
-                    
-                    # Save session
-                    # Save session
-                    for s in sessions:
-                        if s["id"] == st.session_state["current_session_id"]:
-                            s["messages"] = st.session_state["messages"]
-                            s["updated_at"] = datetime.now().isoformat()
-                            break
-                    save_sessions(sessions)
-                    
-                except Exception as e:
-                    st.session_state["typing"] = False
-                    st.error(f"❌ Lỗi khi gọi API: {str(e)}")
-                    st.info("💡 Hãy kiểm tra API key và kết nối internet")
+                display_search_result(item)
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; padding: 2rem; color: #666;">
-    <p>🌐 <strong>TutorBot Web Enhanced</strong> - Powered by Monica AI & SerpAPI</p>
-    <p>📚 Hỗ trợ PDF Upload | 🔍 Web Search | 💬 AI Chat | 💾 Session Management</p>
-    <div style="margin-top: 1rem;">
-        <span style="margin: 0 10px;">📧 Support: contact@tutorbot.com</span>
-        <span style="margin: 0 10px;">🔗 GitHub: github.com/tutorbot</span>
-        <span style="margin: 0 10px;">📖 Docs: docs.tutorbot.com</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+# API endpoints for chatbot integration
+def chatbot_save_search_result(query, results, metadata=None):
+    """
+    Function to be called by chatbot when web search is performed
+    
+    Args:
+        query (str): The search query
+        results (list or str): Search results
+        metadata (dict): Additional metadata
+    
+    Returns:
+        str: Result ID for reference
+    """
+    return ArchiveProtocol.save_search_result(query, results, metadata)
 
-# Auto-scroll to bottom (JavaScript)
-st.markdown("""
-<script>
-    function scrollToBottom() {
-        window.scrollTo(0, document.body.scrollHeight);
-    }
-    
-    // Auto-scroll when new messages arrive
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                setTimeout(scrollToBottom, 100);
-            }
-        });
-    });
-    
-    observer.observe(document.body, { childList: true, subtree: true });
-</script>
-""", unsafe_allow_html=True)
-
-# Cleanup and optimization
-if st.session_state.get("typing") and not st.session_state.get("searching"):
-    time.sleep(0.1)  # Small delay to prevent excessive rerunning
-
-# Performance monitoring (optional)
-if st.checkbox("🔧 Debug Mode", value=False):
-    st.markdown("### 🔍 Debug Information")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.json({
-            "current_session_id": st.session_state.get("current_session_id"),
-            "messages_count": len(st.session_state.get("messages", [])),
-            "total_sessions": len(sessions),
-            "typing": st.session_state.get("typing", False),
-            "searching": st.session_state.get("searching", False)
-        })
-    
-    with col2:
-        st.json({
-            "pdf_files_loaded": len(pdf_info) if pdf_info else 0,
-            "pdf_content_length": len(pdf_content) if pdf_content else 0,
-            "monica_api_configured": bool(monica_api_key),
-            "serpapi_configured": bool(serpapi_key),
-            "session_file_exists": os.path.exists(SESSION_FILE)
-        })
-    
-    if st.button("🧹 Clear Session State"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.success("✅ Session state cleared!")
-        st.rerun()
-
-# Error handling wrapper
-try:
-    # Validate session integrity
-    if st.session_state.get("current_session_id"):
-        current_session = next((s for s in sessions if s["id"] == st.session_state["current_session_id"]), None)
-        if not current_session:
-            st.warning("⚠️ Phiên chat hiện tại không tồn tại. Đang tạo phiên mới...")
-            st.session_state["current_session_id"] = None
-            st.session_state["messages"] = []
-            st.rerun()
-    
-    # Auto-save sessions periodically
-    if len(st.session_state.get("messages", [])) > 0:
-        current_time = datetime.now()
-        last_save = st.session_state.get("last_auto_save")
-        
-        if not last_save or (current_time - datetime.fromisoformat(last_save)).seconds > 30:
-            # Auto-save every 30 seconds
-            for s in sessions:
-                if s["id"] == st.session_state["current_session_id"]:
-                    s["messages"] = st.session_state["messages"]
-                    s["updated_at"] = current_time.isoformat()
-                    break
-            save_sessions(sessions)
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+if __name__ == "__main__":
+    main()

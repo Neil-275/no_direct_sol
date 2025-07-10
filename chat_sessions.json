@@ -1,38 +1,42 @@
 [
   {
-    "id": "2bfa865d-fea3-4c51-9dd6-639206e06b6a",
-    "name": "Messi là ai vậy",
+    "id": "c4417133-1488-4984-8c5e-c46b56e83a65",
+    "name": "3 + 5 bằng mấy",
     "messages": [
       {
         "role": "user",
-        "content": "Messi là ai vậy"
+        "content": "3 + 5 bằng mấy"
       },
       {
-        "role": "user",
-        "content": "hãy viết một đoạn văn tả con thuyền ngoài biển"
+        "role": "assistant",
+        "content": "Để tính tổng của 3 và 5, bạn chỉ cần cộng chúng lại với nhau. Vậy, 3 + 5 = 8.  \nBạn có thể kiểm tra bằng cách sử dụng máy tính hoặc tự tính lại để chắc chắn nhé!  \nNếu bạn có bất kỳ câu hỏi hoặc bài toán nào khác, hãy thoải mái đặt câu hỏi!"
       }
     ],
-    "created_at": "2025-07-09T23:51:53.633849",
-    "updated_at": "2025-07-10T11:25:13.770382"
+    "created_at": "2025-07-10T15:09:28.587618",
+    "updated_at": "2025-07-10T15:34:37.285994"
   },
   {
-    "id": "6d6c8e31-5189-4619-b6fc-ba511e8521d2",
-    "name": "hi",
+    "id": "43bf1342-0631-461a-82a4-ad78bdb0fb10",
+    "name": "chào",
     "messages": [
-      {
-        "role": "user",
-        "content": "hi"
-      },
       {
         "role": "user",
         "content": "chào"
+      },
+      {
+        "role": "assistant",
+        "content": "Chào bạn! Bạn cần giúp đỡ với bài tập hay vấn đề gì hôm nay ạ?"
+      },
+      {
+        "role": "user",
+        "content": "messi là ai"
+      },
+      {
+        "role": "assistant",
+        "content": "Messi là một cầu thủ bóng đá người Argentina nổi tiếng. Tên đầy đủ của anh là Lionel Messi. Anh được coi là một trong những cầu thủ xuất sắc nhất trong lịch sử bóng đá thế giới. Messi đã giành nhiều giải thưởng cá nhân quan trọng như Quả Bóng Vàng FIFA nhiều lần và đã gắn bó lâu dài với FC Barcelona, trước khi chuyển sang đội PSG vào năm 2021. Anh cũng là đội trưởng của đội tuyển quốc gia Argentina và từng giúp đội tuyển này giành chức vô địch Copa America vào năm 2021."
       }
     ],
-    "updated_at": "2025-07-09T23:51:33.500079"
-  },
-  {
-    "id": "72606a28-0b9a-4980-a911-9111af9c2759",
-    "name": "",
-    "messages": []
+    "created_at": "2025-07-10T15:06:35.340493",
+    "updated_at": "2025-07-10T15:08:43.475632"
   }
 ]
