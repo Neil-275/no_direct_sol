@@ -12,6 +12,24 @@ from utils.agent import construct_agent
 from utils.convert_latex import convert_latex_to_markdown
 from RAG.processPDF import update_pdf_data, read_vectordb, ask_with_monica, template, init_faiss_db
 
+from utils.convert_latex import convert_latex_to_markdown
+from utils.authentification import require_login, show_user_info, get_current_user
+
+
+
+st.set_page_config(
+    page_title="TutorBot - AI Tutor Assistant",
+    page_icon="🎓",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+if not require_login("TutorBot - AI Tutor Assistant"):
+    exit()
+
+# Hiển thị thông tin user trong sidebar
+show_user_info()
+
+
 @st.cache_resource
 def get_agent():
     """Cache the agent to avoid recreating it on every rerun"""

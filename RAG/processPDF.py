@@ -18,10 +18,40 @@ pdf_data_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 pdf_data_path+= "/archives/uploads"
 
 
-def update_pdf_data(pdf_files=None):
+# def update_pdf_data(pdf_files=None):
+#     """
+#     Nếu `pdf_files` là None, load toàn bộ thư mục.
+#     Nếu `pdf_files` là danh sách tên file, chỉ load file đó.
+#     """
+#     if pdf_files is None:
+#         loader = DirectoryLoader(pdf_data_path, glob="*.pdf", loader_cls=PyPDFLoader)
+#     else:
+#         loader = DirectoryLoader(
+#             pdf_data_path,
+#             glob="*.pdf",
+#             loader_cls=PyPDFLoader,
+#             silent_errors=True,
+#             show_progress=True
+#         )
+#         loader.file_paths = [f"{pdf_data_path}/{f}" for f in pdf_files]
+    
+#     documents = loader.load()
+#     textsplitter= RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)
+#     chunks = textsplitter.split_documents(documents) 
+#     texts = [doc.page_content for doc in chunks]
+    
+#     embedding = GPT4AllEmbeddings(model_file=embedding_model_file)
+#     db = FAISS.load_local(vector_db_path, embedding, allow_dangerous_deserialization=True)
+
+#     db.add_texts(texts)  # thêm dữ liệu mới
+
+#     db.save_local(vector_db_path)
+#     return db
+def update_pdf_data(pdf_files=None, similarity_threshold=0.95):
     """
     Nếu `pdf_files` là None, load toàn bộ thư mục.
     Nếu `pdf_files` là danh sách tên file, chỉ load file đó.
+    Kiểm tra trùng văn bản trước khi add.
     """
     if pdf_files is None:
         loader = DirectoryLoader(pdf_data_path, glob="*.pdf", loader_cls=PyPDFLoader)
@@ -36,16 +66,28 @@ def update_pdf_data(pdf_files=None):
         loader.file_paths = [f"{pdf_data_path}/{f}" for f in pdf_files]
     
     documents = loader.load()
-    textsplitter= RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)
+    textsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)
     chunks = textsplitter.split_documents(documents) 
     texts = [doc.page_content for doc in chunks]
-    
+
     embedding = GPT4AllEmbeddings(model_file=embedding_model_file)
     db = FAISS.load_local(vector_db_path, embedding, allow_dangerous_deserialization=True)
 
-    db.add_texts(texts)  # thêm dữ liệu mới
+    # lọc texts chưa có
+    unique_texts = []
+    for text in texts:
+        query_emb = embedding.embed_query(text)
+        results = db.similarity_search_by_vector(query_emb, k=1)
+        if results:
+            score = results[0].score if hasattr(results[0], 'score') else None
+            if score and score >= similarity_threshold:
+                continue  # trùng, bỏ qua
+        unique_texts.append(text)
 
-    db.save_local(vector_db_path)
+    if unique_texts:
+        db.add_texts(unique_texts)
+        db.save_local(vector_db_path)
+    
     return db
 
 
@@ -119,7 +161,7 @@ def ask_with_monica(db, query, template, file_filter=None):
     """
     file_filter: tên file PDF (hoặc None nếu không lọc)
     """
-    retriever = db.as_retriever(search_kwargs={"k": 3})
+    retriever = db.as_retriever(search_kwargs={"k": 5})
     docs = retriever.invoke(query)
    # print(docs)
     # lọc theo file nếu có
