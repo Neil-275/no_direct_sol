@@ -11,7 +11,7 @@ import os
 
 vector_db_path = "vector/db_faiss"
 embedding_model_file = "Model/all-MiniLM-L6-v2-f16.gguf"
-monica_api_key = "sk-4d1b2c0f-3e6a-4b5c-bf8c-7d9e1f8a2b3c"
+monica_api_key = os.getenv('MONICA_API_KEY')
 monica_base_url = "https://openapi.monica.im/v1"
 
 pdf_data_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
