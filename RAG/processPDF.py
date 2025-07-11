@@ -141,8 +141,7 @@ def read_vectordb():
 
 template='''<|im_start|>system
 Bạn là một trợ lý AI thông minh
-, bạn sẽ trả lời câu hỏi của người dùng dựa trên các tài liệu đã cho.
- Nếu câu hỏi không có trong tài liệu, hãy trả lời là 'Tôi không biết'.
+, bạn sẽ trả lời câu hỏi của người dùng dựa hoàn toàn trên các tài liệu đã cho.
 {context}
 <|im_end|>
 <|im_start|>user

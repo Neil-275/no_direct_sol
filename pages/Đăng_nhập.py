@@ -4,6 +4,7 @@ import hashlib
 import os
 from datetime import datetime
 import re
+import time
 
 # Cấu hình trang
 st.set_page_config(
@@ -118,6 +119,29 @@ def main():
         border: 1px solid #f5c6cb;
         margin: 1rem 0;
     }
+    .redirect-message {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -132,8 +156,19 @@ def main():
         users = load_users()
         user_data = users.get(st.session_state.username, {})
         
-        st.success(f"Chào mừng, {st.session_state.username}! 🎉")
+        # Hiển thị thông báo chuyển hướng
+        st.markdown(f"""
+        <div class="redirect-message">
+            <h2>🎉 Chào mừng, {st.session_state.username}!</h2>
+            <p style="font-size: 1.2rem; margin: 1rem 0;">Đăng nhập thành công!</p>
+            <div style="margin: 2rem 0;">
+                <div class="loading-spinner"></div>
+                <span>Đang chuyển hướng đến trang chủ...</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
+        # Thông tin người dùng
         col1, col2 = st.columns(2)
         with col1:
             st.info(f"**Tên đăng nhập:** {st.session_state.username}")
@@ -143,10 +178,32 @@ def main():
             if last_login:
                 st.info(f"**Đăng nhập cuối:** {last_login[:16]}")
         
-        if st.button("🚪 Đăng xuất", type="primary"):
-            st.session_state.logged_in = False
-            st.session_state.username = ""
-            st.rerun()
+        # Các nút hành động
+        col1, col2, col3 = st.columns([1, 1, 1])
+        
+        with col1:
+            if st.button("🏠 Đi đến Trang chủ", type="primary", use_container_width=True):
+                st.switch_page("Trang_chủ.py")
+        
+        with col2:
+            if st.button("💬 Chat ngay", use_container_width=True):
+                st.switch_page("pages/Bot_dạy_học.py")
+        
+        with col3:
+            if st.button("🚪 Đăng xuất", type="secondary", use_container_width=True):
+                st.session_state.logged_in = False
+                st.session_state.username = ""
+                st.rerun()
+        
+        # Auto redirect sau 3 giây
+        time.sleep(0.1)  # Ngắn để không block UI
+        st.markdown("""
+        <script>
+        setTimeout(function() {
+            window.location.href = '/';
+        }, 3000);
+        </script>
+        """, unsafe_allow_html=True)
         
         return
 
@@ -167,14 +224,16 @@ def main():
                 if not username or not password:
                     st.error("Vui lòng điền đầy đủ thông tin!")
                 else:
-                    success, message = login_user(username, password)
-                    if success:
-                        st.session_state.logged_in = True
-                        st.session_state.username = username
-                        st.success(message)
-                        st.rerun()
-                    else:
-                        st.error(message)
+                    with st.spinner("Đang xác thực..."):
+                        success, message = login_user(username, password)
+                        if success:
+                            st.session_state.logged_in = True
+                            st.session_state.username = username
+                            st.success(message)
+                            time.sleep(1)  # Hiển thị thông báo thành công
+                            st.rerun()
+                        else:
+                            st.error(message)
         
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -201,12 +260,14 @@ def main():
                     if not is_valid:
                         st.error(password_message)
                     else:
-                        success, message = register_user(username, password)
-                        if success:
-                            st.success(message)
-                            st.balloons()
-                        else:
-                            st.error(message)
+                        with st.spinner("Đang tạo tài khoản..."):
+                            success, message = register_user(username, password)
+                            if success:
+                                st.success(message)
+                                st.balloons()
+                                st.info("💡 Bây giờ bạn có thể đăng nhập bằng tài khoản vừa tạo!")
+                            else:
+                                st.error(message)
         
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -220,12 +281,23 @@ def main():
         
         **Đăng nhập:**
         - Sử dụng tên đăng nhập và mật khẩu đã đăng ký
-        - Hệ thống sẽ lưu thời gian đăng nhập cuối cùng
+        - Hệ thống sẽ tự động chuyển hướng đến trang chủ sau khi đăng nhập thành công
         
         **Bảo mật:**
         - Mật khẩu được mã hóa SHA256
         - Dữ liệu lưu trữ trong file JSON cục bộ
+        - Phiên đăng nhập được duy trì trong suốt session
         """)
+
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #666; padding: 1rem 0;">
+        <p>🎓 <strong>Bot_dạy_học</strong> - Trợ lý AI thông minh cho việc học tập</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+    from RAG.processPDF import init_faiss_db
+    init_faiss_db()  # Khởi tạo cơ sở dữ liệu FAISS nếu cần thiết
