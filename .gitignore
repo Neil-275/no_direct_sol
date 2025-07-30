@@ -3,3 +3,11 @@ test_math_tutor.ipynb
 .env
 prompts/__pycache__/
 chat_history.json
+.streamlit/
+.vscode/
+__pycache__/
+users_database.json
+'*.pyc'
+'*.faiss'
+'*.pkl'
+'*.log'
