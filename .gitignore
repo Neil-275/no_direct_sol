@@ -7,7 +7,8 @@ chat_history.json
 .vscode/
 __pycache__/
 users_database.json
-'*.pyc'
-'*.faiss'
-'*.pkl'
-'*.log'
+vector/db_faiss/*
+*.pyc
+*.faiss
+*.pkl
+*.log
